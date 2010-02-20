@@ -1,3 +1,5 @@
+// Median Cut code by Anton Kruger from Dr. Dobbs September 01, 1994
+
 //build initial cube from histogram;
 //set initial cube's level to 0;
 //insert initial cube in list of cubes;

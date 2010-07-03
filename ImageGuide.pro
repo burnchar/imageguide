@@ -2,13 +2,16 @@ TARGET = ImageGuide
 TEMPLATE = app
 SOURCES += main.cpp \
 	Window.cpp \
-	mediancut.cpp
+    ColorQuantizer.cpp
 HEADERS += Window.h \
-	mediancut.h \
-	ScrollArea.h
+	ScrollArea.h \
+    ColorQuantizer.h
 #CONFIG += stl # To enable STL in the compiler
 
-CONFIG += static
+### Uncomment for static build
+#CONFIG += static
+
+
 # QTPLUGIN += qjpeg qgif qtiff
 # win32:QMAKE_LFLAGS += /LIBPATH:"$$[QT_INSTALL_PLUGINS]/imageformats"
 # !win32:QMAKE_LFLAGS += -L$$[QT_INSTALL_PLUGINS]/imageformats

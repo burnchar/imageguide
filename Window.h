@@ -14,13 +14,20 @@
 #include <QDragEnterEvent>
 #include <QFileInfo>
 #include <QUrl>
+#include <QTime>
 #include <QApplication>
 #include <QFileDialog>
 #include <QDesktopServices>
 #include <QMessageBox>
+#include <QProgressDialog>
 #include <QtGui/QStatusBar>
 
-//#include <QScrollArea>
+#include <QDebug>
+
+#include "mediancut.h"
+#include "ColorQuantizer.h"
+
+
 #include "ScrollArea.h"
 #include <QPainter>
 #include <QtDebug>

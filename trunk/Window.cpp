@@ -42,8 +42,6 @@
 //
 
 #include "Window.h"
-#include <QDebug>
-#include "mediancut.h"
 
 //! Constructor for Window class.
 //! @param imageURI Optional URI of a file to initially open (from command line)
@@ -261,44 +259,55 @@ quint32 Window::imageSaveIndexed(QImage &in, QImage &out)
 	QRgb *imagePtr = reinterpret_cast<QRgb *>(imageRgb.bits());
 	QRgb col = imagePtr[0];
 
-	quint16 histogram[32768] = {0};
+//! BUILD HISTOGRAM TO PASS TO MEDIAN CUT
+	std::vector<quint16> newHist(32768, 0);  //! FOR MY MEDIAN CUT
 
-	int numBytes = imageRgb.numBytes();
-	for(int pixel = 0; pixel < numBytes / 4; ++pixel) {
+	quint16 histogram[32768] = {0}; // Must be zeroed!
+	int pixels = imageRgb.numBytes() / 4; // 4 bytes per pixel
+	for(int pixel = 0; pixel < pixels; ++pixel) {
 		col = imagePtr[pixel];
 		quint8 r = qRed(col), g = qGreen(col), b = qBlue(col);
-		quint16 xrgb = RGB(r,g,b);
+		quint16 xrgb = RGB(r,g,b); // Convert 32-bit RGBA8888 to 15-bit RGB555
 		++histogram[xrgb];
+		++newHist[xrgb];
 //		if(pixel == 0) qDebug() << pixel << "  RGB="
 //				<< r << "," << g << "," << b << ", 15-bit RGB:" << xrgb;
 	}
-
-//	QFile dbg("debug.csv");
-//	dbg.open(QFile::WriteOnly);
-//	QTextStream ts(&dbg);
-//	for(int i = 0; i < 32768; ++i) {
-//		ts << histogram[i] << endl;
-//	}
-
+	// histogram[] now contains a count of all 32768 possible colors
+//! END BUILD HISTOGRAM
 	const int maxColors = 64;
-	quint8 colMap[maxColors][3];
-	memset(colMap, 255, maxColors*3);
-	int actualColors = MedianCut(histogram, colMap, maxColors);
-	//qDebug() << "'Actual colors': " << actualColors;
 
+//! TEST MY MEDIAN CUT
+	// TODO: The conversion between newColMap and colors isn't really necessary.
+	//       Do it directly.
+	quint8 newColMap[maxColors][4];
+	myMedianCut(newHist, newColMap, maxColors);
 
-	QVector<QRgb> colors;
-	QRgb p;
-	for(int i = 0; i < maxColors -1; ++i) {
-		p = qRgb(colMap[i][0], colMap[i][1], colMap[i][2]);
-		colors.append(p);
-		//qDebug() << colMap[i][0] << "," << colMap[i][1] << "," << colMap[i][2];
+	QVector<QRgb> colors(maxColors);
+	for(int c = 0; c < maxColors; ++c) {
+		colors.append(qRgb(newColMap[c][1], newColMap[c][2], newColMap[c][3]));
+
 	}
 
-	// For some reason, the median cut code doesn't always choose white
-	// as a color, even when it is by far the most populous color, so white
-	// is added explicitely. Yes, this is a hack.
-	colors.append(qRgb(255,255,255));
+
+//! END TEST MY MEDIAN CUT
+
+//	quint8 colMap[maxColors][3];
+//	memset(colMap, 255, maxColors*3);
+//	int actualColors = MedianCut(histogram, colMap, maxColors);
+
+//
+//	QRgb p;
+//	for(int i = 0; i < maxColors -1; ++i) {
+//		p = qRgb(colMap[i][0], colMap[i][1], colMap[i][2]);
+//		colors.append(p);
+//		//qDebug() << colMap[i][0] << "," << colMap[i][1] << "," << colMap[i][2];
+//	}
+
+//	// For some reason, the median cut code doesn't always choose white
+//	// as a color, even when it is by far the most populous color, so white
+//	// is added explicitely. Yes, this is a hack.
+//	colors.append(qRgb(255,255,255));
 
 /*********************************************************************************************************************
  ** Code to try Median Cut ends here
@@ -443,6 +452,9 @@ char Window::imageAdviseSaveFormat(quint32 sizeJPG, quint32 sizePNG)
 //! @param imageURI URI of the image to attempt to load.
 void Window::loadImageFile(QString &imageURI)
 {
+	QTime time;
+	time.start();
+
 	if(! imageURI.isEmpty()) {
 		if(image[0]->load(imageURI) == false) {
 			statusBarLabel->setText(QString(
@@ -478,6 +490,12 @@ void Window::loadImageFile(QString &imageURI)
 			imageGroupBox->setTitle(QDir::toNativeSeparators(imageURI));
 		}
 	}
+	qDebug("Time elapsed: %d ms", time.elapsed());
+	// Debug build:
+	// 3.75 secs for a 1024x1024  Mine:
+	// 18 secs for a 2048x2048    Mine: 11.7
+	// 75 seconds for 4096x4096   Mine:
+
 }
 
 
@@ -495,16 +513,37 @@ qint8 Window::getJpegQualityForSize(QImage &image, qint32 targetSize)
 	QBuffer buffer(&ba);
 	quint8 quality = 50, lo = 0, hi = 100;
 //qDebug() << "Looking for JPG quality to get file size close to PNG file size.";
+
+	//TODO: If more than 1 images is being processed at a time,
+	//      use one core per image rather than splitting just one image n-ways.
+
+	// 7 is log base 2 of 100, the max possible number of resaves. TODO: Clean up
+	QProgressDialog progress("Examining picture...", "Cancel", 0, 7, this);
+	progress.setModal(true);
+
+	bool cancelled = false; // TODO: Use this value to display if it was cancelled
+
+	quint8 tryCount = 0;
 	do {
-//qDebug() << "Trying quality: " << quality << " of 100.";
+		//! qDebug() << "Trying quality: " << quality << " of 100.";
+
+		progress.setValue(tryCount);
+		if(progress.wasCanceled()) {
+			cancelled = true;
+			statusBarLabel->setText(tr("Processing cancelled."));
+			break;
+		}
+
 		buffer.open(QIODevice::WriteOnly);
 		image.save(&buffer, "JPG", quality);
+
 		// Encoded size is too big. Need to reduce quality to reach target size.
 		if(ba.size() >= targetSize) {
 			hi = quality;
 			quality = (quality + lo) / 2;
 			if(quality == hi) break;
 		}
+
 		// Encoded size is too small. Need to increase quality.
 		else {
 			lo = quality;
@@ -515,7 +554,9 @@ qint8 Window::getJpegQualityForSize(QImage &image, qint32 targetSize)
 		ba.clear();
 		buffer.close();
 		qApp->processEvents();
+		++tryCount;
 	} while(true);
+
 //qDebug() << "Recommended JPEG quality to be close to PNG file size:" << quality;
 	return quality;
 }

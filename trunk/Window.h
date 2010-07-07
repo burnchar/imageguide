@@ -24,9 +24,8 @@
 
 #include <QDebug>
 
-#include "mediancut.h"
-#include "ColorQuantizer.h"
-
+//#include "ColorQuantizer.h"
+#include "colorreducer.h"
 
 #include "ScrollArea.h"
 #include <QPainter>

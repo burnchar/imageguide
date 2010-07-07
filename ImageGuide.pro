@@ -2,10 +2,10 @@ TARGET = ImageGuide
 TEMPLATE = app
 SOURCES += main.cpp \
 	Window.cpp \
-    ColorQuantizer.cpp
+    colorreducer.cpp
 HEADERS += Window.h \
 	ScrollArea.h \
-    ColorQuantizer.h
+    colorreducer.h
 #CONFIG += stl # To enable STL in the compiler
 
 ### Uncomment for static build

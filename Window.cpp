@@ -250,68 +250,63 @@ bool Window::fileTestLossy(QString &imageURI)
 //! @return The size of the saved image
 quint32 Window::imageSaveIndexed(QImage &in, QImage &out)
 {
-
-
 /*********************************************************************************************************************
  ** Code to try Median Cut starts here
 \*********************************************************************************************************************/
+
 	QImage imageRgb = in.convertToFormat(QImage::Format_ARGB32);
 	QRgb *imagePtr = reinterpret_cast<QRgb *>(imageRgb.bits());
-	QRgb col = imagePtr[0];
+//	QRgb col = imagePtr[0];
 
-//! BUILD HISTOGRAM TO PASS TO MEDIAN CUT
-	std::vector<quint16> newHist(32768, 0);  //! FOR MY MEDIAN CUT
+////! BUILD HISTOGRAM TO PASS TO MEDIAN CUT
+//	std::vector<quint16> newHist(32768, 0);  //! FOR MY MEDIAN CUT
 
-	quint16 histogram[32768] = {0}; // Must be zeroed!
-	int pixels = imageRgb.numBytes() / 4; // 4 bytes per pixel
-	for(int pixel = 0; pixel < pixels; ++pixel) {
-		col = imagePtr[pixel];
-		quint8 r = qRed(col), g = qGreen(col), b = qBlue(col);
-		quint16 xrgb = RGB(r,g,b); // Convert 32-bit RGBA8888 to 15-bit RGB555
-		++histogram[xrgb];
-		++newHist[xrgb];
-//		if(pixel == 0) qDebug() << pixel << "  RGB="
-//				<< r << "," << g << "," << b << ", 15-bit RGB:" << xrgb;
+//	quint16 histogram[32768] = {0}; // Must be zeroed!
+//	int pixels = imageRgb.numBytes() / 4; // 4 bytes per pixel
+//	for(int pixel = 0; pixel < pixels; ++pixel) {
+//		col = imagePtr[pixel];
+//		quint8 r = qRed(col), g = qGreen(col), b = qBlue(col);
+//		quint16 xrgb = RGB(r,g,b); // Convert 32-bit RGBA8888 to 15-bit RGB555
+//		++histogram[xrgb];
+//		++newHist[xrgb];
+//	}	// histogram[] now contains a count of all 32768 possible colors
+////! END BUILD HISTOGRAM
+
+//! Test new color reducer class
+	const int maxColors = 256;
+	std::vector<QRgb> colorsv(maxColors);
+	QVector<QRgb> colors(maxColors);
+
+
+	//ColorReducer cr(imagePtr, maxColors);
+	ColorReducer cr;
+	cr.openImage(imagePtr, imageRgb.numBytes() / 4);
+	cr.reduceColors(colorsv, maxColors);
+
+
+	// TODO: Make this a direct conversion rather than a slow loop.
+	for(int color = 0; color < maxColors; ++color) {
+		colors[color] = colorsv[color];
 	}
-	// histogram[] now contains a count of all 32768 possible colors
-//! END BUILD HISTOGRAM
-	const int maxColors = 64;
+//! END Test new color reducer class
+
 
 //! TEST MY MEDIAN CUT
 	// TODO: The conversion between newColMap and colors isn't really necessary.
 	//       Do it directly.
-	quint8 newColMap[maxColors][4];
-	myMedianCut(newHist, newColMap, maxColors);
+//	quint8 newColMap[maxColors][4];
+//	myMedianCut(newHist, newColMap, maxColors);
 
-	QVector<QRgb> colors(maxColors);
-	for(int c = 0; c < maxColors; ++c) {
-		colors.append(qRgb(newColMap[c][1], newColMap[c][2], newColMap[c][3]));
-
-	}
-
-
+//	QVector<QRgb> colors(maxColors);
+//	for(int c = 0; c < maxColors; ++c) {
+//		colors.append(qRgb(newColMap[c][1], newColMap[c][2], newColMap[c][3]));
+//	}
 //! END TEST MY MEDIAN CUT
 
-//	quint8 colMap[maxColors][3];
-//	memset(colMap, 255, maxColors*3);
-//	int actualColors = MedianCut(histogram, colMap, maxColors);
 
-//
-//	QRgb p;
-//	for(int i = 0; i < maxColors -1; ++i) {
-//		p = qRgb(colMap[i][0], colMap[i][1], colMap[i][2]);
-//		colors.append(p);
-//		//qDebug() << colMap[i][0] << "," << colMap[i][1] << "," << colMap[i][2];
-//	}
-
-//	// For some reason, the median cut code doesn't always choose white
-//	// as a color, even when it is by far the most populous color, so white
-//	// is added explicitely. Yes, this is a hack.
-//	colors.append(qRgb(255,255,255));
-
-/*********************************************************************************************************************
+/*******************************************************************************
  ** Code to try Median Cut ends here
-\*********************************************************************************************************************/
+\******************************************************************************/
 
 	QImage temp(in.size(), QImage::Format_ARGB32);
 	temp.fill(QColor(Qt::white).rgb());
@@ -494,7 +489,7 @@ void Window::loadImageFile(QString &imageURI)
 	// Debug build:
 	// 3.75 secs for a 1024x1024  Mine:
 	// 18 secs for a 2048x2048    Mine: 11.7
-	// 75 seconds for 4096x4096   Mine:
+	// 75 seconds for 4096x4096   Mine: 47 sec
 
 }
 

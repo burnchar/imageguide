@@ -47,7 +47,7 @@
 //! @param imageURI Optional URI of a file to initially open (from command line)
 Window::Window(QString &imageURI)
 {
-	this->setWindowTitle("CNB ImageGuide 0.4 Beta Initial Release");
+	this->setWindowTitle("CNB ImageGuide 0.5 Beta");
 //	defaultStatusMessage = new QString(tr("© 2009 Charles N. Burns - <a href=\"http://www.synergysoftwaregroup.com\">www.SynergySoftwareGroup.com</a>"));
 	defaultStatusMessage = new QString(tr("© 2009 Charles N. Burns - <a href=\"http://www.formortals.com/author/charles\">www.formortals.com</a>"));
 	this->fileOpenPath = new QString(".");
@@ -104,7 +104,7 @@ void Window::createImageGroupBox(QString &imageURI)
 		labelText[count] = new QLabel(imageText[count]);
 		imageLayout->addWidget(labelText[count], 1, count, Qt::AlignBottom);
 	}
-	imageGroupBox = new QGroupBox(tr("ImageGuide 1.0 by Charles Burns - Helps choose the best image type: JPG and PNG"));
+	imageGroupBox = new QGroupBox(tr("ImageGuide by Charles Burns - Helps choose the best image type: JPG and PNG"));
 	imageGroupBox->setMinimumHeight(130);
 	imageGroupBox->setLayout(imageLayout);
 	if(!imageURI.isEmpty()) loadImageFile(imageURI);
@@ -265,6 +265,7 @@ quint32 Window::imageSaveIndexed(QImage &in, QImage &out)
 	for(int color = 0; color < maxColors; ++color) {
 		colors[color] = colorsv[color];
 	}
+	colors.push_back(QColor(Qt::white).rgb());
 
 
 	QImage temp(in.size(), QImage::Format_ARGB32);

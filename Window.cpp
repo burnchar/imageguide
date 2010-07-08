@@ -253,7 +253,7 @@ quint32 Window::imageSaveIndexed(QImage &in, QImage &out)
 	QImage imageRgb = in.convertToFormat(QImage::Format_ARGB32);
 	QRgb *imagePtr = reinterpret_cast<QRgb *>(imageRgb.bits());
 
-	const int maxColors = 256;
+	const int maxColors = 32;
 	std::vector<QRgb> colorsv(maxColors);
 	QVector<QRgb> colors(maxColors);
 
@@ -265,25 +265,7 @@ quint32 Window::imageSaveIndexed(QImage &in, QImage &out)
 	for(int color = 0; color < maxColors; ++color) {
 		colors[color] = colorsv[color];
 	}
-//! END Test new color reducer class
 
-
-//! TEST MY MEDIAN CUT
-	// TODO: The conversion between newColMap and colors isn't really necessary.
-	//       Do it directly.
-//	quint8 newColMap[maxColors][4];
-//	myMedianCut(newHist, newColMap, maxColors);
-
-//	QVector<QRgb> colors(maxColors);
-//	for(int c = 0; c < maxColors; ++c) {
-//		colors.append(qRgb(newColMap[c][1], newColMap[c][2], newColMap[c][3]));
-//	}
-//! END TEST MY MEDIAN CUT
-
-
-/*******************************************************************************
- ** Code to try Median Cut ends here
-\******************************************************************************/
 
 	QImage temp(in.size(), QImage::Format_ARGB32);
 	temp.fill(QColor(Qt::white).rgb());
@@ -463,6 +445,7 @@ void Window::loadImageFile(QString &imageURI)
 		}
 	}
 	qDebug("Time elapsed: %d ms", time.elapsed());
+
 	// Debug build:
 	// 3.75 secs for a 1024x1024  Mine:
 	// 18 secs for a 2048x2048    Mine: 11.7

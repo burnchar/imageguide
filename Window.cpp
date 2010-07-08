@@ -250,37 +250,14 @@ bool Window::fileTestLossy(QString &imageURI)
 //! @return The size of the saved image
 quint32 Window::imageSaveIndexed(QImage &in, QImage &out)
 {
-/*********************************************************************************************************************
- ** Code to try Median Cut starts here
-\*********************************************************************************************************************/
-
 	QImage imageRgb = in.convertToFormat(QImage::Format_ARGB32);
 	QRgb *imagePtr = reinterpret_cast<QRgb *>(imageRgb.bits());
-//	QRgb col = imagePtr[0];
 
-////! BUILD HISTOGRAM TO PASS TO MEDIAN CUT
-//	std::vector<quint16> newHist(32768, 0);  //! FOR MY MEDIAN CUT
-
-//	quint16 histogram[32768] = {0}; // Must be zeroed!
-//	int pixels = imageRgb.numBytes() / 4; // 4 bytes per pixel
-//	for(int pixel = 0; pixel < pixels; ++pixel) {
-//		col = imagePtr[pixel];
-//		quint8 r = qRed(col), g = qGreen(col), b = qBlue(col);
-//		quint16 xrgb = RGB(r,g,b); // Convert 32-bit RGBA8888 to 15-bit RGB555
-//		++histogram[xrgb];
-//		++newHist[xrgb];
-//	}	// histogram[] now contains a count of all 32768 possible colors
-////! END BUILD HISTOGRAM
-
-//! Test new color reducer class
 	const int maxColors = 256;
 	std::vector<QRgb> colorsv(maxColors);
 	QVector<QRgb> colors(maxColors);
 
-
-	//ColorReducer cr(imagePtr, maxColors);
-	ColorReducer cr;
-	cr.openImage(imagePtr, imageRgb.numBytes() / 4);
+	ColorReducer cr(imagePtr, imageRgb.numBytes() / 4);
 	cr.reduceColors(colorsv, maxColors);
 
 

@@ -1,7 +1,7 @@
 /*
   ImageGuide 1.0
 
-  (C) 2009 Charles N. Burns (charlesnburns@gmail.com)
+  (C) 2010 Charles N. Burns (charlesnburns@gmail.com)
 
   Shows an opened image as both a JPG and an indexed PNG file of the same size.
   One of the two will usually look noticeably better than the other. The user
@@ -16,28 +16,27 @@
 	- Solution: Implement a color quantization feature (using Median Cut, etc.)
 
 */
-// TODO: Really need to fix that weird color problem
-// TODO: Use "setText" on saved functions to reference this rp[ogram
+// TODO: Figure out why white is sometimes excluded unless forced.
+//		 Maybe due to the bitwise 32-bit --> 15 bit conversion logic?
+// TODO: Use "setText" on saved functions to reference this program
 // TODO: If recommended JPEG quality is really high, like 98+, probably need to reconsider saving as PNG
-// TODO: Sometimes the JPEG is much larger or smaller than the PNG, like when it's a flat color. What to do about that?
-// TODO: The occasional off color is probably because it uses 16-bit colors.
+// TODO: Sometimes the JPEG is much larger or smaller than the PNG, like when it's a flat color. What to do about that? "Strong" recommendation?
 // TODO: Doesn't always pick obvious colors, like in darwin_doppler_original.png
 //        For indexed color images, grab their index and use it for the output.
 // TODO: Support alpha, at least a transparent color. Maybe the above will help.
-// TODO: Show image sizes, maybe
+// TODO: Experiment with showing image sizes
 // TODO: Maybe could use Qt to do the conversion to a 16-bit color image using convertToFormat
 // TODO: If dest image is larger than source image, keep old image
 // TODO: Right-click: Display menu: Zoom in or out (Maybe just double-click zoom)
 // TODO: Include sample file and show what to look for
-// TODO: Make command-line support unicode more complete
+// TODO: Add command-line support, including unicode
 // TODO: Save getJpegQualityForSize's JPG so it doesn't have to be repeated. Same with PNG
 // TODO: Clicking on label to left of Open Image button also opens an image
 // TODO: Add //: comments for every tr()
 // TODO: Make default botton "Open image"
- // TODO: Test with large image files. The recommendation tool needs tweaking.
+// TODO: Test with large image files. The recommendation tool needs tweaking.
 // TODO: If image path is too long to display, replace part with elipses
 // TODO: Save as PNG should have a slider to allow user to choose quality
-// NOTABUG: Does saving the file actually work?
 // FIXED: Pictures with alpha have their alpha set to BLACK
 //
 
@@ -48,8 +47,7 @@
 Window::Window(QString &imageURI)
 {
 	this->setWindowTitle("CNB ImageGuide 0.5 Beta");
-//	defaultStatusMessage = new QString(tr("© 2009 Charles N. Burns - <a href=\"http://www.synergysoftwaregroup.com\">www.SynergySoftwareGroup.com</a>"));
-	defaultStatusMessage = new QString(tr("© 2009 Charles N. Burns - <a href=\"http://www.formortals.com/author/charles\">www.formortals.com</a>"));
+	defaultStatusMessage = new QString(tr("© 2010 Charles N. Burns - <a href=\"http://www.formortals.com/author/charles\">www.formortals.com</a>"));
 	this->fileOpenPath = new QString(".");
 	this->sizeJPG = this->sizePNG = this->jpgQuality = 0;
 
@@ -104,7 +102,7 @@ void Window::createImageGroupBox(QString &imageURI)
 		labelText[count] = new QLabel(imageText[count]);
 		imageLayout->addWidget(labelText[count], 1, count, Qt::AlignBottom);
 	}
-	imageGroupBox = new QGroupBox(tr("ImageGuide by Charles Burns - Helps choose the best image type: JPG and PNG"));
+	imageGroupBox = new QGroupBox(tr("ImageGuide by Charles Burns - Helps choose the best image type: JPG or PNG"));
 	imageGroupBox->setMinimumHeight(130);
 	imageGroupBox->setLayout(imageLayout);
 	if(!imageURI.isEmpty()) loadImageFile(imageURI);
@@ -118,7 +116,7 @@ void Window::createControlsGroupBox()
 	buttonLoad = new QPushButton(tr("&Open A Picture"));
 	buttonJpg = new QPushButton(tr("&JPG"));
 	buttonPNG = new QPushButton(tr("&PNG"));
-	buttonCantTell = new QPushButton(tr("I &Can't Tell"));
+	buttonCantTell = new QPushButton(tr("&Choose for me"));
 	buttonJpg->setMinimumWidth(80);
 	buttonPNG->setMinimumWidth(80);
 	buttonCantTell->setFixedWidth(100);
@@ -423,7 +421,7 @@ void Window::loadImageFile(QString &imageURI)
 			statusBarLabel->setText(*defaultStatusMessage);
 			if(fileTestLossy(imageURI) == true) {
 				QMessageBox::warning(this, imageURI + tr(" - Original image altered by JPG format"),
-									 tr("This file's type (<b>.JPG</b>) makes <b>PNG</b> unable to compress it properly. Saving as .JPG makes changes to an image which cannot be fixed. <ul><li>If the file is a <i>photograph</i>, do nothing: .JPG is a good choice. <li>Otherwise, if you have the original before it was converted to .JPG, use the original.</ul>"), QMessageBox::Ok);
+									 tr("This file's type (<b>.JPG</b>) makes <b>PNG</b> unable to compress it properly. Saving as .JPG makes permanent changes to an image which cannot be fixed. <ul><li>If the file is a <i>photograph</i>, do nothing: .JPG is a good choice. <li>Otherwise, if you have the original before it was converted to .JPG, open the original.</ul>"), QMessageBox::Ok);
 			}
 			this->sizePNG = imageSaveIndexed(*image[0], *image[2]);
 			this->jpgQuality = getJpegQualityForSize(*image[0], this->sizePNG);
@@ -444,14 +442,12 @@ void Window::loadImageFile(QString &imageURI)
 			}
 			imageGroupBox->setTitle(QDir::toNativeSeparators(imageURI));
 		}
+		char recommend = imageAdviseSaveFormat(this->sizeJPG, this->sizePNG);
+		QString recMsg(tr("I recommend that you save this image as "));
+		if(recommend == 'p') statusBarLabel->setText(recMsg + "<b>PNG</b>.");
+		else statusBarLabel->setText(recMsg + "<b>JPG</b>.");
 	}
 	qDebug("Time elapsed: %d ms", time.elapsed());
-
-	// Debug build:
-	// 3.75 secs for a 1024x1024  Mine:
-	// 18 secs for a 2048x2048    Mine: 11.7
-	// 75 seconds for 4096x4096   Mine: 47 sec
-
 }
 
 

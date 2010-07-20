@@ -1,3 +1,7 @@
+// This class is in heavy development. Comments/documentation to come.
+// Some of this code is based on an article in DDJ by Anton Kruger.
+// Any bugs are likely mine, not his.
+
 #include "colorreducer.h"
 
 using std::vector;
@@ -49,14 +53,16 @@ void ColorReducer::openImage(uint32 imageBytes[], uint32 pixelCount)
    and split it. If a cube has only one color, it can't be split.
    TODO: Figure out a smarter way to choose which cube to split other than
 	   just whichever has the lowest level, unless this turns out to be best.
-	   Perhaps base it on which has the greatest color range?
+	   Perhaps base it on which has the greatest color range, including human
+	   perception of the primary colors?
 */
 int ColorReducer::reduceColors(vector<uint32> &colorMap, uint16 numColors)
 {
 	buildColorTable();
 	myCube.upper = colorTable.size() - 1;
 	trim(myCube); // Scan through colors to set max/min of each component
-	cubeList[numCubes++] = myCube;	// Add the initial cube to the maxColors-size array of cubes
+	cubeList[numCubes] = myCube;	// Add the initial cube to the maxColors-size array of cubes
+	numCubes ++;
 
 	// There's got to be a better way to do this!
 	// TODO: Change all these uint8's to ints where appropriate for performance
@@ -89,15 +95,12 @@ void ColorReducer::findLongestColorDimension(int splitPos)
 }
 
 
-//void myInvMap(std::vector<uint16> &histogram, uint8 colorMap[][4], uint16 numCubes);
 void ColorReducer::averageCubeColors(
 		vector<uint16> &histogram, std::vector<uint32> &colorMap, uint16 numColors)
 {
-	// foreach cube in list of cubes, computes centroid (average value) of
+	// for each cube in list of cubes, computes centroid (average value) of
 	// colors enclosed by that cube, and loads centroids in the color map. Next
-	// loads histogram with indices into the color map. A preprocessor directive
-	// #define FAST_REMAP controls whether cube centroids become output color
-	// forall the colors in a cube, or whether a "best remap" is followed. */
+	// loads histogram with indices into the color map.
 	uint8      r, g, b;
 	uint16     i, j, k, index, color;
 	uint32       redSum, grnSum, bluSum; // TODO: Get rid of floats
@@ -248,12 +251,12 @@ void ColorReducer::getMedianColor(int &median, int &pixelCount)
 	// than images which use a full sort (theoretically ideal),
 	// so I am keeping nth_element despite this theoretical bug.
 	// TODO: Do another nth_element on the elements from midarray to median
-	std::nth_element(colorTable.begin() + myCube.lower, // Actually better
+	std::nth_element(colorTable.begin() + myCube.lower, // Actually better, actually faster
 					 colorTable.begin() + midarray,
 					 colorTable.begin() + myCube.upper + 1,
 					 compareRgb16Component);
 
-//		std::sort(colorTable.begin() + myCube.lower, // Theoretically better
+//		std::sort(colorTable.begin() + myCube.lower, // Theoretically better, actually slower
 //				  colorTable.begin() + myCube.upper + 1,
 //				  compareRgb16Component);
 
